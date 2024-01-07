@@ -12,7 +12,7 @@ from odin_api.exceptions import (OAApiAuthenticationFail,
 
 class Api:
     
-    def __init__(self, base_url: str, username: str, password: str) -> None:
+    def __init__(self, base_url: str, username: str, password: str, token_expiry: int =23) -> None:
         """ Connection to Odin API, all interactions with the api are here.
 
         Args:
@@ -21,7 +21,7 @@ class Api:
             password (str): Password used when logging into odin account stored as virtual environment.
             
         Vars: 
-            authorised (bool): Boolean value to indicate if api is authorised.\
+            authorised (bool): Boolean value to indicate if api is authorised.
             token (str): Token string returned from odin api.
         """
         
@@ -38,6 +38,11 @@ class Api:
         self.post = post.Post(self.requester)
         self.put = put.Put(self.requester)
         self.delete = delete.Delete(self.requester)
+        
+        self.timer_started = False
+        self.countdown_seconds = token_expiry * 60 * 60  # 24 hours in seconds
+        self.timer_thread = threading.Thread(target=self._start_timer)
+        self.timer_thread.start()
         
         self.scripter = Scripter(api=self)
  
@@ -72,6 +77,18 @@ class Api:
             return self.get.session()
         except requests.exceptions.HTTPError:
             raise AOFailedToLocateSession()
+
+
+    def _start_timer(self):
+        self.timer = threading.Timer(self.countdown_seconds, self._token_expired())
+        self.timer.start()
+        self.timer.join()
+        self._start_timer = True
+
+
+    def _token_expired(self): 
+        if self._start_timer: 
+            self.refresh_authorisation()
 
 
     def __str__(self) -> str:
