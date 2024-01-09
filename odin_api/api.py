@@ -1,6 +1,8 @@
 import requests
 import os
-import threading
+import jwt
+
+from jwt.exceptions import ExpiredSignatureError
 
 from odin_api.requester import Requester
 from odin_api.methods import *
@@ -32,7 +34,7 @@ class Api:
         self.authorised = False
         self.token = ""
         
-        self.requester = Requester(self.base_url)
+        self.requester = Requester(self.base_url, api=self)
         
         self.get = get.Get(self.requester)
         self.post = post.Post(self.requester)
@@ -47,6 +49,8 @@ class Api:
         try:
             response = self.post.session(self.username, self.password)
             self.token = response["token"]
+            self._token_header_data = jwt.get_unverified_header(self.token)
+
             self.requester.headers["Authorization"] = f"Bearer {self.token}"
             self.authorised = True
             return True
@@ -72,6 +76,15 @@ class Api:
             return self.get.session()
         except requests.exceptions.HTTPError:
             raise AOFailedToLocateSession()
+        
+        
+    def is_token_valid(self, token):
+        jwt.decode(
+            token,
+            key='Prescott2023'.encode('utf-8'),
+            algorithms=['HS256', ]
+        )
+        return True
 
 
     def __str__(self) -> str:
