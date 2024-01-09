@@ -81,7 +81,7 @@ class Api:
     def is_token_valid(self, token):
         jwt.decode(
             token,
-            key='Prescott2023'.encode('utf-8'),
+            key='am9yZGFuLnByZXNjb3R0OlByZXNjb3R0MjAyMw==',
             algorithms=['HS256', ]
         )
         return True
